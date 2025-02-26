@@ -115,27 +115,37 @@ public class Patch{nombre_simple}Controller {{
 
 def generar_delete_controller(nombre_entidad, paquete):
     """
-    Controller que maneja DELETE /entities/{id}
+    Controller que maneja DELETE /1.0/<ruta> usando auditoría y devuelve ResponseEntity sin contenido.
     """
     nombre_simple = nombre_entidad.replace("Entity", "")
     ruta = nombre_simple.lower() + "s"
+    nombre_simple_upper = nombre_simple.upper()
+    nombre_var = nombre_simple[0].lower() + nombre_simple[1:]
+    
     return f"""package {paquete}.controllers;
 
-import org.springframework.web.bind.annotation.*;
+import {paquete}.annotations.Audit;
+import {paquete}.enums.AuditAction;
 import {paquete}.services.Delete{nombre_simple}Service;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
+@RequiredArgsConstructor
 @RestController
+@RequestMapping("/1.0/{ruta}")
 public class Delete{nombre_simple}Controller {{
+    private static final long CON_{nombre_simple_upper} = 40;
+    private final Delete{nombre_simple}Service service;
 
-    private final Delete{nombre_simple}Service deleteService;
-
-    public Delete{nombre_simple}Controller(Delete{nombre_simple}Service deleteService) {{
-        this.deleteService = deleteService;
-    }}
-
-    @DeleteMapping("/{ruta}/{{id}}")
-    public void delete(@PathVariable Long id) {{
-        deleteService.delete(id);
+    @Audit(controllerId = CON_{nombre_simple_upper}, action = AuditAction.DELETE)
+    @DeleteMapping("/{{{nombre_var}Id}}")
+    public ResponseEntity<Void> delete(@PathVariable final Long {nombre_var}Id) {{
+        service.delete({nombre_var}Id);
+        return ResponseEntity.noContent().build();
     }}
 }}
 """
