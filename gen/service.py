@@ -1,25 +1,27 @@
 def generar_create_service(nombre_entidad, paquete, id_tipo="Long"):
     nombre_simple = nombre_entidad.replace("Entity", "")
+    var_name = nombre_simple[0].lower() + nombre_simple[1:]
     return f"""package {paquete}.services;
 
-import org.springframework.stereotype.Service;
-import {paquete}.models.entities.{nombre_entidad};
+import {paquete}.mappers.{nombre_simple}Mapper;
+import {paquete}.models.dtos.{nombre_simple}Dto;
+import {paquete}.models.pojos.{nombre_simple};
 import {paquete}.repositories.{nombre_simple}Repository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
+@RequiredArgsConstructor
 @Service
 public class Create{nombre_simple}Service {{
-
     private final {nombre_simple}Repository repository;
 
-    public Create{nombre_simple}Service({nombre_simple}Repository repository) {{
-        this.repository = repository;
-    }}
-
-    public {nombre_entidad} create({nombre_entidad} entity) {{
-        return repository.save(entity);
+    public {nombre_simple}Dto create(final {nombre_simple} {var_name}) {{
+        {var_name}.setHighQuality(Boolean.FALSE);
+        return {nombre_simple}Mapper.toDto(repository.save({nombre_simple}Mapper.toEntity({var_name})));
     }}
 }}
 """
+
 
 def generar_find_service(nombre_entidad, paquete, id_tipo="Long"):
     nombre_simple = nombre_entidad.replace("Entity", "")
