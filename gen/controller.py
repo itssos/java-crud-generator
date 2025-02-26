@@ -35,28 +35,39 @@ public class Get{nombre_simple}Controller {{
 
 def generar_post_controller(nombre_entidad, paquete):
     """
-    Controller que maneja POST /entities
+    Controller que maneja POST /1.0/<ruta>,
+    usando un DTO, un POJO, anotaciones de auditoría, etc.
     """
     nombre_simple = nombre_entidad.replace("Entity", "")
     ruta = nombre_simple.lower() + "s"
+    # Para usar en la constante estática (por ejemplo CON_PATIENT -> CON_PATIENT)
+    nombre_simple_upper = nombre_simple.upper()
+
     return f"""package {paquete}.controllers;
 
-import org.springframework.web.bind.annotation.*;
-import {paquete}.models.entities.{nombre_entidad};
+import {paquete}.annotations.Audit;
+import {paquete}.enums.AuditAction;
+import {paquete}.models.dtos.{nombre_simple}Dto;
+import {paquete}.models.pojos.{nombre_simple};
 import {paquete}.services.Create{nombre_simple}Service;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
 
+@RequiredArgsConstructor
 @RestController
+@RequestMapping("/1.0/{ruta}")
 public class Post{nombre_simple}Controller {{
+    private static final long CON_{nombre_simple_upper} = 40; // Ajusta el valor según tu necesidad
 
-    private final Create{nombre_simple}Service createService;
+    private final Create{nombre_simple}Service service;
 
-    public Post{nombre_simple}Controller(Create{nombre_simple}Service createService) {{
-        this.createService = createService;
-    }}
-
-    @PostMapping("/{ruta}")
-    public {nombre_entidad} create(@RequestBody {nombre_entidad} entity) {{
-        return createService.create(entity);
+    @Audit(controllerId = CON_{nombre_simple_upper}, action = AuditAction.POST)
+    @PostMapping
+    public ResponseEntity<{nombre_simple}Dto> create(@Valid @RequestBody {nombre_simple} newObject) {{
+        return new ResponseEntity<>(service.create(newObject), HttpStatus.CREATED);
     }}
 }}
 """
