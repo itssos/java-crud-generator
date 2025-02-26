@@ -1,27 +1,34 @@
 def generar_get_controller(nombre_entidad, paquete):
     """
-    Controller que maneja GET /entities/{id}
+    Controller que maneja GET /1.0/<ruta> con paginación y un modelo de búsqueda.
     """
     nombre_simple = nombre_entidad.replace("Entity", "")
     ruta = nombre_simple.lower() + "s"
     return f"""package {paquete}.controllers;
 
-import org.springframework.web.bind.annotation.*;
-import {paquete}.models.entities.{nombre_entidad};
-import {paquete}.services.Find{nombre_simple}Service;
+import {paquete}.models.dtos.{nombre_simple}Dto;
+import {paquete}.search.{nombre_simple}SearchModel;
+import {paquete}.services.Search{nombre_simple}Service;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Collection;
+
+@RequiredArgsConstructor
 @RestController
+@RequestMapping("/1.0/{ruta}")
 public class Get{nombre_simple}Controller {{
 
-    private final Find{nombre_simple}Service findService;
+    private final Search{nombre_simple}Service service;
 
-    public Get{nombre_simple}Controller(Find{nombre_simple}Service findService) {{
-        this.findService = findService;
-    }}
-
-    @GetMapping("/{ruta}/{{id}}")
-    public {nombre_entidad} findById(@PathVariable Long id) {{
-        return findService.findById(id);
+    @GetMapping
+    public ResponseEntity<Collection<{nombre_simple}Dto>> get(final {nombre_simple}SearchModel searchModel,
+                                                              final Pageable pageable) {{
+        return ResponseEntity.ok(service.search(searchModel, pageable));
     }}
 }}
 """
