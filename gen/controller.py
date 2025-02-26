@@ -74,28 +74,41 @@ public class Post{nombre_simple}Controller {{
 
 def generar_patch_controller(nombre_entidad, paquete):
     """
-    Controller que maneja PATCH /entities/{id}
+    Controller que maneja PATCH /1.0/<ruta> usando auditoría, RequiredArgsConstructor y respuesta sin contenido.
     """
     nombre_simple = nombre_entidad.replace("Entity", "")
     ruta = nombre_simple.lower() + "s"
+    # Nombre en mayúsculas para la constante (e.g. "PATIENT")
+    nombre_simple_upper = nombre_simple.upper()
+    # Variable para el identificador en el path (e.g. "patient" de "Patient")
+    nombre_var = nombre_simple[0].lower() + nombre_simple[1:]
+    
     return f"""package {paquete}.controllers;
 
-import org.springframework.web.bind.annotation.*;
-import {paquete}.models.entities.{nombre_entidad};
+import {paquete}.annotations.Audit;
+import {paquete}.enums.AuditAction;
+import {paquete}.models.pojos.{nombre_simple};
 import {paquete}.services.Patch{nombre_simple}Service;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
+@RequiredArgsConstructor
 @RestController
+@RequestMapping("/1.0/{ruta}")
 public class Patch{nombre_simple}Controller {{
+    private static final long CON_{nombre_simple_upper} = 40;
+    private final Patch{nombre_simple}Service service;
 
-    private final Patch{nombre_simple}Service patchService;
-
-    public Patch{nombre_simple}Controller(Patch{nombre_simple}Service patchService) {{
-        this.patchService = patchService;
-    }}
-
-    @PatchMapping("/{ruta}/{{id}}")
-    public {nombre_entidad} patch(@PathVariable Long id, @RequestBody {nombre_entidad} partialEntity) {{
-        return patchService.patch(id, partialEntity);
+    @Audit(controllerId = CON_{nombre_simple_upper}, action = AuditAction.PATCH)
+    @PatchMapping("/{{{nombre_var}Id}}")
+    public ResponseEntity<Void> patch(@PathVariable final Long {nombre_var}Id, @RequestBody final {nombre_simple} {nombre_var}) {{
+        service.patch({nombre_var}Id, {nombre_var});
+        return ResponseEntity.noContent().build();
     }}
 }}
 """
