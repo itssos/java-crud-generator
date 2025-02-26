@@ -15,12 +15,14 @@ from gen.service import (
     generar_patch_service,
     generar_search_service
 )
-from extract_data import (extraer_nombre_entidad, extraer_paquete)
 from gen.repository import generar_repository
+from extract_data import extraer_nombre_entidad, extraer_paquete
+from gen.dto import generar_dto_archivo  # ✅ Importamos el generador de DTO
+from gen.search import generar_search_model_archivo  # ✅ Importamos el generador de SearchModel
 
 def main():
     # Nombre de tu archivo .java
-    entidad_file = "D:\Digital Solutions\AutoCrud\pruebas\patients-api\src\main\java\com\inycom\cws\models\entities\PatientEntity.java"
+        entidad_file = "D:\Digital Solutions\AutoCrud\pruebas\patients-api\src\main\java\com\inycom\cws\models\entities\PatientEntity.java"
 
     # Leer el código Java
     with open(entidad_file, "r", encoding="utf-8") as f:
@@ -31,13 +33,21 @@ def main():
     paquete = extraer_paquete(codigo_java)
 
     if not nombre_entidad:
-        print("No se pudo extraer el nombre de la entidad.")
+        print("❌ No se pudo extraer el nombre de la entidad.")
         return
 
     # Crear subcarpetas si no existen
     os.makedirs("repositories", exist_ok=True)
     os.makedirs("services", exist_ok=True)
     os.makedirs("controllers", exist_ok=True)
+    os.makedirs("models/dtos", exist_ok=True)  # ✅ Aseguramos la carpeta de DTOs
+    os.makedirs("search", exist_ok=True)  # ✅ Ahora `search/` está fuera de `models/`
+
+    # ✅ Generar DTO en `models/dtos/`
+    generar_dto_archivo(entidad_file)
+
+    # ✅ Generar SearchModel en `search/`
+    generar_search_model_archivo(entidad_file)
 
     # Generar Repository
     repo_code = generar_repository(nombre_entidad, paquete)
@@ -71,8 +81,8 @@ def main():
         with open(os.path.join("controllers", filename), "w", encoding="utf-8") as f:
             f.write(code)
 
-    print("Generación de código completada.")
-    print("Revisa las carpetas 'repositories', 'services' y 'controllers'.")
+    print("✅ Generación de código completada.")
+    print("📂 Revisa las carpetas 'repositories', 'services', 'controllers', 'models/dtos' y 'search'.")
 
 if __name__ == "__main__":
     main()
