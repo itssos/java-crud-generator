@@ -47,43 +47,32 @@ public class Find{nombre_simple}Service {{
 
 def generar_patch_service(nombre_entidad, paquete, id_tipo="Long"):
     """
-    Ejemplo simple de patch, asumiendo que solo modificamos
-    algunos campos. Ajusta la lógica según tus requisitos.
+    Genera el servicio de PATCH que utiliza el FindService para obtener la entidad existente,
+    el Mapper para transformar el POJO en entidad, y PatchUtils para mezclar ambos.
     """
     nombre_simple = nombre_entidad.replace("Entity", "")
+    nombre_var = nombre_simple[0].lower() + nombre_simple[1:]
     return f"""package {paquete}.services;
 
-import org.springframework.stereotype.Service;
+import {paquete}.mappers.{nombre_simple}Mapper;
 import {paquete}.models.entities.{nombre_entidad};
+import {paquete}.models.pojos.{nombre_simple};
 import {paquete}.repositories.{nombre_simple}Repository;
-import java.util.Optional;
+import {paquete}.services.Find{nombre_simple}Service;
+import {paquete}.utils.PatchUtils;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
+@RequiredArgsConstructor
 @Service
 public class Patch{nombre_simple}Service {{
-
+    private final Find{nombre_simple}Service service;
     private final {nombre_simple}Repository repository;
 
-    public Patch{nombre_simple}Service({nombre_simple}Repository repository) {{
-        this.repository = repository;
-    }}
-
-    public {nombre_entidad} patch({id_tipo} id, {nombre_entidad} partialEntity) {{
-        Optional<{nombre_entidad}> existingOpt = repository.findById(id);
-        if (existingOpt.isEmpty()) {{
-            return null; // O lanza excepción
-        }}
-
-        {nombre_entidad} existing = existingOpt.get();
-        // Ejemplo: parchear sólo algunos campos no nulos
-        if (partialEntity.getName() != null) {{
-            existing.setName(partialEntity.getName());
-        }}
-        if (partialEntity.getSurname() != null) {{
-            existing.setSurname(partialEntity.getSurname());
-        }}
-        // Agrega aquí más lógica para otros campos
-
-        return repository.save(existing);
+    public void patch(final {id_tipo} {nombre_var}Id, final {nombre_simple} {nombre_var}Patch) {{
+        final {nombre_entidad} existingEntity = service.find({nombre_var}Id);
+        final {nombre_entidad} patchedEntity = {nombre_simple}Mapper.toEntity({nombre_var}Patch);
+        repository.save(PatchUtils.merge(existingEntity, patchedEntity));
     }}
 }}
 """
