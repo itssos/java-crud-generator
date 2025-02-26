@@ -22,28 +22,25 @@ public class Create{nombre_simple}Service {{
 }}
 """
 
-
 def generar_find_service(nombre_entidad, paquete, id_tipo="Long"):
     nombre_simple = nombre_entidad.replace("Entity", "")
+    nombre_var = nombre_simple[0].lower() + nombre_simple[1:]
     return f"""package {paquete}.services;
 
-import org.springframework.stereotype.Service;
+import {paquete}.exceptions.CwsException;
 import {paquete}.models.entities.{nombre_entidad};
 import {paquete}.repositories.{nombre_simple}Repository;
-import java.util.Optional;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
+@RequiredArgsConstructor
 @Service
 public class Find{nombre_simple}Service {{
-
     private final {nombre_simple}Repository repository;
 
-    public Find{nombre_simple}Service({nombre_simple}Repository repository) {{
-        this.repository = repository;
-    }}
-
-    public {nombre_entidad} findById({id_tipo} id) {{
-        Optional<{nombre_entidad}> result = repository.findById(id);
-        return result.orElse(null);
+    public {nombre_entidad} find(final {id_tipo} {nombre_var}Id) {{
+        return repository.findById({nombre_var}Id)
+                         .orElseThrow(() -> new CwsException("Not found " + {nombre_var}Id));
     }}
 }}
 """
