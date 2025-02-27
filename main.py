@@ -54,6 +54,7 @@ def main():
     os.makedirs("search", exist_ok=True)
     os.makedirs("mappers", exist_ok=True)
 
+    generar_mapper_archivo(entidad_file)
     # Generar archivos DTO y POJO
     generar_dto_archivo(entidad_file, "models/dtos", "models/dtos", "models/pojos")
     generar_pojo_archivo(entidad_file, "models/pojos")
@@ -74,7 +75,6 @@ def main():
     generar_archivos_factories(entidad_file, atributos_seleccionados)
 
     # Generar Mapper
-    generar_mapper_archivo(entidad_file)
 
     # Generar Repository
     repo_code = generar_repository(nombre_entidad, paquete)
