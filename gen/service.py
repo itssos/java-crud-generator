@@ -95,24 +95,24 @@ def generar_delete_service(nombre_entidad, paquete, id_tipo="Long"):
     nombre_simple = nombre_entidad.replace("Entity", "")
     return f"""package {base}.services;
 
-import org.springframework.stereotype.Service;
 import {base}.models.entities.{nombre_entidad};
 import {base}.repositories.{nombre_simple}Repository;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 
+@RequiredArgsConstructor
 @Service
 public class Delete{nombre_simple}Service {{
-
+    private final Find{nombre_simple}Service service;
     private final {nombre_simple}Repository repository;
 
-    public Delete{nombre_simple}Service({nombre_simple}Repository repository) {{
-        this.repository = repository;
-    }}
-
-    public void delete({id_tipo} id) {{
-        repository.deleteById(id);
+    public void delete(final {id_tipo} id) {{
+        final {nombre_entidad} entity = service.find(id);
+        repository.delete(entity);
     }}
 }}
 """
+
 
 
 def generar_search_service(nombre_entidad, paquete):

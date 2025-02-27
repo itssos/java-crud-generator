@@ -45,10 +45,11 @@ def generar_dto(nombre_entidad, paquete, atributos_seleccionados, embedded_selec
     Genera el código del DTO en base a:
       - Los atributos seleccionados.
       - Los atributos embebidos (con @Embedded) seleccionados.
-      - La posible extensión del POJO, si existe.
+      - Extiende del POJO, importándolo desde el package derivado de la entidad.
     """
     nombre_simple = nombre_entidad.replace("Entity", "")
     nombre_dto = f"{nombre_simple}Dto"
+    # El package del DTO se deriva del package de la entidad, cambiando "models.entities" por "models.dtos"
     paquete_dto = paquete.replace("models.entities", "models.dtos")
     
     importaciones = set([
@@ -59,6 +60,7 @@ def generar_dto(nombre_entidad, paquete, atributos_seleccionados, embedded_selec
         "import lombok.experimental.SuperBuilder;"
     ])
     
+    # Si se encontró un POJO, se importa desde el package de POJOs derivado de la entidad
     if pojo_clase:
         importaciones.add(f"import {paquete.replace('models.entities', 'models.pojos')}.{pojo_clase};")
     
@@ -75,6 +77,7 @@ def generar_dto(nombre_entidad, paquete, atributos_seleccionados, embedded_selec
         embedded_str.append(f"@Embedded\n    private {tipo} {nombre};")
         importaciones.add("import jakarta.persistence.Embedded;")
     
+    # El DTO extiende del POJO (si se encontró) para reutilizar la lógica de negocio o de datos
     extends_str = f" extends {pojo_clase}" if pojo_clase else ""
     
     dto_code = f"""package {paquete_dto};
@@ -96,10 +99,11 @@ public class {nombre_dto}{extends_str} {{
 
 def generar_dto_archivo(entidad_file, dtos_path, entidades_path, pojos_path):
     """
-    Genera el DTO en base a una entidad Java.
+    Genera el DTO a partir de una entidad Java.
     Se extraen todos los atributos y se combinan en un solo prompt:
-      - Los atributos que estén anotados con @Embedded se indican con la etiqueta "(embedded)".
+      - Los atributos que estén anotados con @Embedded se muestran con la etiqueta "(embedded)".
       - La selección se procesa para separar atributos normales y embebidos.
+    El DTO extiende del POJO (si se encuentra) e importa dicho POJO desde el package derivado de la entidad.
     """
     with open(entidad_file, "r", encoding="utf-8") as f:
         codigo_java = f.read()
@@ -118,9 +122,9 @@ def generar_dto_archivo(entidad_file, dtos_path, entidades_path, pojos_path):
     nombre_pojo = nombre_entidad.replace("Entity", "")
     pojo_clase = buscar_pojo(pojos_path, nombre_pojo)
     
-    # Extraer los atributos embebidos (los que tienen @Embedded)
+    # Extraer los atributos embebidos (aquellos con @Embedded)
     embedded_atributos = extraer_embedded_atributos(codigo_java)
-    # Convertir a un set de nombres para marcar las opciones
+    # Convertir a un set de nombres para marcarlos en la lista de opciones
     embedded_nombres = {nombre for _, nombre in embedded_atributos}
     
     # Construir una única lista de opciones para seleccionar
@@ -153,7 +157,7 @@ def generar_dto_archivo(entidad_file, dtos_path, entidades_path, pojos_path):
                 tipo, nombre = attr.split(" ")
                 atributos_seleccionados.append((tipo, nombre))
     
-    # Generar el código DTO
+    # Generar el código DTO, que extiende del POJO (si se encontró)
     dto_code = generar_dto(nombre_entidad, paquete, atributos_seleccionados, embedded_seleccionados, pojo_clase)
     
     os.makedirs(dtos_path, exist_ok=True)
