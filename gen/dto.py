@@ -16,6 +16,18 @@ def extraer_embedded_atributos(codigo_java):
     """
     return re.findall(r'@Embedded\s+private\s+([\w<>]+)\s+(\w+);', codigo_java)
 
+def extraer_id_atributo(codigo_java):
+    """
+    Extrae el atributo que está anotado con @Id, incluso si tiene anotaciones intermedias.
+    Retorna una tupla (tipo, nombre) si se encuentra, o None en caso contrario.
+    Se permite que entre @Id y "private" haya anotaciones que contengan cualquier carácter.
+    """
+    pattern = r'@Id(?:\s*\n\s*@.*?)*\s*private\s+([\w<>]+)\s+(\w+);'
+    match = re.search(pattern, codigo_java, re.DOTALL)
+    if match:
+        return (match.group(1), match.group(2))
+    return None
+
 def buscar_embeddable_classes(entidades_path):
     """
     Busca clases anotadas con @Embeddable en la carpeta models/entities.
@@ -40,12 +52,13 @@ def buscar_pojo(pojos_path, nombre_clase):
         return nombre_clase
     return None
 
-def generar_dto(nombre_entidad, paquete, atributos_seleccionados, embedded_seleccionados, pojo_clase):
+def generar_dto(nombre_entidad, paquete, atributos_seleccionados, embedded_seleccionados, pojo_clase, id_atributo):
     """
     Genera el código del DTO en base a:
       - Los atributos seleccionados.
       - Los atributos embebidos (con @Embedded) seleccionados.
       - Extiende del POJO, importándolo desde el package derivado de la entidad.
+    Solo se añade @NotNull al atributo que corresponde al id (según la anotación @Id en la entidad).
     """
     nombre_simple = nombre_entidad.replace("Entity", "")
     nombre_dto = f"{nombre_simple}Dto"
@@ -66,7 +79,7 @@ def generar_dto(nombre_entidad, paquete, atributos_seleccionados, embedded_selec
     
     atributos_str = []
     for tipo, nombre in atributos_seleccionados:
-        if "id" in nombre.lower() or "Id" in nombre:
+        if id_atributo and nombre == id_atributo[1]:
             atributos_str.append(f"@NotNull\n    private {tipo} {nombre};")
             importaciones.add("import jakarta.validation.constraints.NotNull;")
         else:
@@ -77,7 +90,7 @@ def generar_dto(nombre_entidad, paquete, atributos_seleccionados, embedded_selec
         embedded_str.append(f"@Embedded\n    private {tipo} {nombre};")
         importaciones.add("import jakarta.persistence.Embedded;")
     
-    # El DTO extiende del POJO (si se encontró) para reutilizar la lógica de negocio o de datos
+    # El DTO extiende del POJO (si se encontró)
     extends_str = f" extends {pojo_clase}" if pojo_clase else ""
     
     dto_code = f"""package {paquete_dto};
@@ -104,6 +117,7 @@ def generar_dto_archivo(entidad_file, dtos_path, entidades_path, pojos_path):
       - Los atributos que estén anotados con @Embedded se muestran con la etiqueta "(embedded)".
       - La selección se procesa para separar atributos normales y embebidos.
     El DTO extiende del POJO (si se encuentra) e importa dicho POJO desde el package derivado de la entidad.
+    Solo se añade @NotNull al atributo que en la entidad está anotado con @Id.
     """
     with open(entidad_file, "r", encoding="utf-8") as f:
         codigo_java = f.read()
@@ -118,6 +132,9 @@ def generar_dto_archivo(entidad_file, dtos_path, entidades_path, pojos_path):
     if not nombre_entidad or not atributos:
         print("❌ Error: No se pudo extraer el nombre de la entidad o los atributos.")
         return
+    
+    # Extraer el atributo id (anotado con @Id)
+    id_atributo = extraer_id_atributo(codigo_java)
     
     nombre_pojo = nombre_entidad.replace("Entity", "")
     pojo_clase = buscar_pojo(pojos_path, nombre_pojo)
@@ -158,7 +175,7 @@ def generar_dto_archivo(entidad_file, dtos_path, entidades_path, pojos_path):
                 atributos_seleccionados.append((tipo, nombre))
     
     # Generar el código DTO, que extiende del POJO (si se encontró)
-    dto_code = generar_dto(nombre_entidad, paquete, atributos_seleccionados, embedded_seleccionados, pojo_clase)
+    dto_code = generar_dto(nombre_entidad, paquete, atributos_seleccionados, embedded_seleccionados, pojo_clase, id_atributo)
     
     os.makedirs(dtos_path, exist_ok=True)
     dto_file = os.path.join(dtos_path, f"{nombre_entidad.replace('Entity', '')}Dto.java")
