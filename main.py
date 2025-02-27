@@ -21,6 +21,7 @@ from gen.pojo import generar_pojo_archivo  # 🔹 Generador de POJOs
 from gen.search import generar_search_model_archivo, extraer_atributos, seleccionar_atributos
 from gen.specification import generar_specifications_archivo
 from gen.mapper import generar_mapper_archivo
+from gen.factories import generar_archivos_factories
 
 def main():
     # Ruta del archivo de la entidad Java
@@ -70,6 +71,7 @@ def main():
     # Generar SearchModel y Specifications utilizando los mismos atributos seleccionados
     generar_search_model_archivo(entidad_file, atributos_seleccionados)
     generar_specifications_archivo(entidad_file, atributos_seleccionados)
+    generar_archivos_factories(entidad_file, atributos_seleccionados)
 
     # Generar Mapper
     generar_mapper_archivo(entidad_file)
