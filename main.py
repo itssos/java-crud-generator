@@ -19,7 +19,7 @@ from extract_data import extraer_nombre_entidad, extraer_paquete
 from gen.dto import generar_dto_archivo
 from gen.search import generar_search_model_archivo
 from gen.specification import generar_specifications_archivo  # ✅ Importamos el generador de Specification
-from gen.factories import generar_specification_factory_archivo  # ✅ Importamos el generador de Factory
+from gen.factories import generar_archivos_specifications_y_factory as generar_specification_factory_archivo
 from gen.mapper import generar_mapper_archivo  # ✅ Importamos el generador de Mapper
 
 def main():

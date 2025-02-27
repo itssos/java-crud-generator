@@ -13,6 +13,9 @@ def seleccionar_atributos(atributos):
     """
     Permite seleccionar qué atributos incluir en Specifications mediante consola.
     """
+    if not atributos:
+        return []
+    
     preguntas = [
         inquirer.Checkbox(
             "atributos",
@@ -69,54 +72,59 @@ public class {nombre_spec} {{
 {especificaciones}
 {cierre_clase}
 """
-    return specifications_code
+    return nombre_spec, specifications_code  # Devolver el nombre correcto y el código generado
 
 def generar_specifications_archivo(entidad_file):
     """
     Lee el archivo de la entidad y genera Specifications en la carpeta 'specifications/'.
     """
+    # Obtener el nombre de la entidad sin ".java"
+    nombre_entidad = os.path.basename(entidad_file).replace(".java", "")
+    nombre_simple = nombre_entidad.replace("Entity", "")
+
     # Definir el archivo SearchModel generado previamente
-    search_file = os.path.join("search", f"{os.path.basename(entidad_file).replace('Entity.java', 'SearchModel.java')}")
+    search_file = os.path.join("search", f"{nombre_simple}SearchModel.java")
 
     if not os.path.exists(search_file):
         print(f"❌ No se encontró el archivo SearchModel: {search_file}")
-        return
+        return ""
 
     # Leer código Java del SearchModel
     with open(search_file, "r", encoding="utf-8") as f:
         codigo_java = f.read()
 
     # Extraer metadatos
-    nombre_entidad = extraer_nombre_entidad(codigo_java)
     paquete = extraer_paquete(codigo_java)
     atributos = extraer_atributos_search(codigo_java)
 
     if not nombre_entidad or not atributos:
         print("❌ Error: No se pudo extraer el nombre de la entidad o los atributos del SearchModel.")
-        return
+        return ""
 
-    # Permitir selección de atributos por consola
+    # ✅ Permitir selección de atributos por consola
     atributos_seleccionados = seleccionar_atributos(atributos)
 
     if not atributos_seleccionados:
         print("⚠ No se seleccionaron atributos. No se generará Specifications.")
-        return
+        return ""
+
+    # Generar Specifications
+    nombre_spec, spec_code = generar_specifications(nombre_entidad, paquete, atributos_seleccionados)
 
     # ✅ Crear carpeta `specifications/` en la raíz si no existe
     os.makedirs("specifications", exist_ok=True)
 
     # ✅ Guardar archivo en `specifications/`
-    spec_file = os.path.join("specifications", f"{nombre_entidad.replace('Entity', '')}Specifications.java")
+    spec_file = os.path.join("specifications", f"{nombre_spec}.java")
     with open(spec_file, "w", encoding="utf-8") as f:
-        f.write(generar_specifications(nombre_entidad, paquete, atributos_seleccionados))
+        f.write(spec_code)
 
     print(f"✅ Specifications generado en: {spec_file}")
 
-# Funciones auxiliares para extraer nombre de entidad y paquete
-def extraer_nombre_entidad(codigo_java):
-    match = re.search(r'public\s+class\s+(\w+)', codigo_java)
-    return match.group(1) if match else None
+    return spec_code  # Retorna el código generado para evitar None
 
+# Función auxiliar para extraer el paquete
 def extraer_paquete(codigo_java):
     match = re.search(r'package\s+([\w\.]+);', codigo_java)
     return match.group(1) if match else "com.example"
+
