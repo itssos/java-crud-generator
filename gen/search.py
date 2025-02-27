@@ -87,11 +87,12 @@ def generar_search_model_archivo(entidad_file, atributos_seleccionados=None):
     # Generar SearchModel
     search_code = generar_search_model(nombre_entidad, paquete, atributos_seleccionados)
 
-    # Crear carpeta 'search' en la raíz si no existe
-    os.makedirs("search", exist_ok=True)
+    # Crear carpeta 'output/search' si no existe
+    search_dir = os.path.join("output", "search")
+    os.makedirs(search_dir, exist_ok=True)
 
-    # Guardar archivo en 'search' con el nombre adecuado
-    search_file = os.path.join("search", f"{nombre_entidad.replace('Entity', '')}SearchModel.java")
+    # Guardar archivo en 'output/search' con el nombre adecuado
+    search_file = os.path.join(search_dir, f"{nombre_entidad.replace('Entity', '')}SearchModel.java")
     with open(search_file, "w", encoding="utf-8") as f:
         f.write(search_code)
 

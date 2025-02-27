@@ -6,12 +6,12 @@ from gen.controller import (
     generar_delete_controller,
     generar_patch_controller,
 )
+
 from gen.service import (
     generar_create_service,
     generar_delete_service,
     generar_find_service,
-    generar_patch_service,
-    generar_search_service
+    generar_patch_service
 )
 from gen.repository import generar_repository
 from extract_data import extraer_nombre_entidad, extraer_paquete
@@ -21,6 +21,7 @@ from gen.mapper import generar_mapper_archivo
 from gen.search import generar_search_model_archivo, extraer_atributos, seleccionar_atributos
 from gen.specification import generar_specifications_archivo
 from gen.factories import generar_archivos_factories
+
 
 def seleccionar_archivo(entidad_dir):
     """
@@ -43,6 +44,7 @@ def seleccionar_archivo(entidad_dir):
             if 0 <= indice < len(archivos):
                 return os.path.join(entidad_dir, archivos[indice])
         print("❌ Selección inválida. Intente de nuevo.")
+
 
 def main():
     # Solicitar por consola el directorio que contiene las entidades
@@ -75,22 +77,27 @@ def main():
         return
 
     # Solicitar el valor para la constante compartida (para POST, PATCH y DELETE)
-    con_value_input = input("Ingrese el valor para la constante compartida (por ejemplo, 40): ").strip()
+    con_value_input = input("Ingrese el valor para la constante compartida para el controlador (por ejemplo, 40): ").strip()
     if not con_value_input.isdigit():
         print("❌ Debe ingresar un número válido.")
         return
     con_value = con_value_input
 
-    # Crear carpetas si no existen
-    os.makedirs("controllers", exist_ok=True)
-    os.makedirs("services", exist_ok=True)
-    os.makedirs("repositories", exist_ok=True)
-    os.makedirs("models/dtos", exist_ok=True)
-    os.makedirs("models/pojos", exist_ok=True)
-    os.makedirs("mappers", exist_ok=True)
-    os.makedirs("search", exist_ok=True)
-    os.makedirs("specifications", exist_ok=True)
-    os.makedirs("factories", exist_ok=True)
+    # Crear carpetas dentro de la carpeta 'output' si no existen
+    output_dirs = {
+        "controllers": os.path.join("output", "controllers"),
+        "services": os.path.join("output", "services"),
+        "repositories": os.path.join("output", "repositories"),
+        "models_dtos": os.path.join("output", "models", "dtos"),
+        "models_pojos": os.path.join("output", "models", "pojos"),
+        "mappers": os.path.join("output", "mappers"),
+        "search": os.path.join("output", "search"),
+        "specifications": os.path.join("output", "specifications"),
+        "factories": os.path.join("output", "factories")
+    }
+
+    for dir_path in output_dirs.values():
+        os.makedirs(dir_path, exist_ok=True)
 
     # 1. Generar Controllers (GET no utiliza la constante)
     controllers_map = {
@@ -100,7 +107,8 @@ def main():
         f"Delete{nombre_simple}Controller.java": generar_delete_controller(nombre_entidad, paquete, con_value),
     }
     for filename, code in controllers_map.items():
-        with open(os.path.join("controllers", filename), "w", encoding="utf-8") as f:
+        filepath = os.path.join(output_dirs["controllers"], filename)
+        with open(filepath, "w", encoding="utf-8") as f:
             f.write(code)
 
     # 2. Generar Services
@@ -111,18 +119,19 @@ def main():
         f"Delete{nombre_simple}Service.java": generar_delete_service(nombre_entidad, paquete),
     }
     for filename, code in services_map.items():
-        with open(os.path.join("services", filename), "w", encoding="utf-8") as f:
+        filepath = os.path.join(output_dirs["services"], filename)
+        with open(filepath, "w", encoding="utf-8") as f:
             f.write(code)
 
     # 3. Generar Repository
     repo_code = generar_repository(nombre_entidad, paquete)
-    repo_file = os.path.join("repositories", f"{nombre_simple}Repository.java")
+    repo_file = os.path.join(output_dirs["repositories"], f"{nombre_simple}Repository.java")
     with open(repo_file, "w", encoding="utf-8") as f:
         f.write(repo_code)
 
     # 4. Generar archivos DTO y POJO
-    generar_dto_archivo(entidad_file, "models/dtos", "models/dtos", "models/pojos")
-    generar_pojo_archivo(entidad_file, "models/pojos")
+    generar_dto_archivo(entidad_file, output_dirs["models_dtos"], output_dirs["models_dtos"], output_dirs["models_pojos"])
+    generar_pojo_archivo(entidad_file, output_dirs["models_pojos"])
 
     # 5. Generar Mapper
     generar_mapper_archivo(entidad_file)
@@ -143,7 +152,8 @@ def main():
     generar_archivos_factories(entidad_file, atributos_seleccionados)
 
     print("✅ Generación de código completada.")
-    print("📁 Revisa las carpetas 'controllers', 'services', 'repositories', 'models/dtos', 'models/pojos', 'mappers', 'search', 'specifications' y 'factories'.")
+    print("📁 Revisa la carpeta 'output' y sus subcarpetas: controllers, services, repositories, models/dtos, models/pojos, mappers, search, specifications y factories.")
+
 
 if __name__ == "__main__":
     main()

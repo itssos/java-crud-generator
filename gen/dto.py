@@ -4,37 +4,31 @@ import inquirer
 
 def extraer_atributos(codigo_java):
     """
-    Extrae los atributos de la clase Java.
+    Extrae todos los atributos de la clase Java.
+    Retorna una lista de tuplas (tipo, nombre).
     """
     return re.findall(r'private\s+([\w<>]+)\s+(\w+);', codigo_java)
 
-def buscar_embedded_en_dtos(dtos_path):
+def extraer_embedded_atributos(codigo_java):
     """
-    Busca si hay otros DTOs con @Embedded.
+    Extrae de la entidad los atributos que están anotados con @Embedded.
+    Retorna una lista de tuplas (tipo, nombre).
     """
-    embedded_classes = set()
-    for archivo in os.listdir(dtos_path):
-        if archivo.endswith("Dto.java"):
-            with open(os.path.join(dtos_path, archivo), "r", encoding="utf-8") as f:
-                contenido = f.read()
-                matches = re.findall(r'@Embedded\s+private\s+(\w+)', contenido)
-                embedded_classes.update(matches)
-    return embedded_classes
+    return re.findall(r'@Embedded\s+private\s+([\w<>]+)\s+(\w+);', codigo_java)
 
-def buscar_embeddable_classes(src_path):
+def buscar_embeddable_classes(entidades_path):
     """
-    Busca clases anotadas con @Embeddable.
+    Busca clases anotadas con @Embeddable en la carpeta models/entities.
     """
     embeddable_classes = set()
-    for root, _, files in os.walk(src_path):
-        for archivo in files:
-            if archivo.endswith(".java"):
-                with open(os.path.join(root, archivo), "r", encoding="utf-8") as f:
-                    contenido = f.read()
-                    if "@Embeddable" in contenido:
-                        match = re.search(r'public\s+class\s+(\w+)', contenido)
-                        if match:
-                            embeddable_classes.add(match.group(1))
+    for archivo in os.listdir(entidades_path):
+        if archivo.endswith(".java"):
+            with open(os.path.join(entidades_path, archivo), "r", encoding="utf-8") as f:
+                contenido = f.read()
+                if "@Embeddable" in contenido:
+                    match = re.search(r'public\s+class\s+(\w+)', contenido)
+                    if match:
+                        embeddable_classes.add(match.group(1))
     return embeddable_classes
 
 def buscar_pojo(pojos_path, nombre_clase):
@@ -46,9 +40,12 @@ def buscar_pojo(pojos_path, nombre_clase):
         return nombre_clase
     return None
 
-def generar_dto(nombre_entidad, paquete, atributos_seleccionados, embedded_clases, pojo_clase):
+def generar_dto(nombre_entidad, paquete, atributos_seleccionados, embedded_seleccionados, pojo_clase):
     """
-    Genera el código del DTO en base a los atributos seleccionados, clases embebidas y POJO.
+    Genera el código del DTO en base a:
+      - Los atributos seleccionados.
+      - Los atributos embebidos (con @Embedded) seleccionados.
+      - La posible extensión del POJO, si existe.
     """
     nombre_simple = nombre_entidad.replace("Entity", "")
     nombre_dto = f"{nombre_simple}Dto"
@@ -74,15 +71,15 @@ def generar_dto(nombre_entidad, paquete, atributos_seleccionados, embedded_clase
             atributos_str.append(f"private {tipo} {nombre};")
     
     embedded_str = []
-    for clase in embedded_clases:
-        embedded_str.append(f"@Embedded\n    private {clase} {clase.lower()};")
+    for tipo, nombre in embedded_seleccionados:
+        embedded_str.append(f"@Embedded\n    private {tipo} {nombre};")
         importaciones.add("import jakarta.persistence.Embedded;")
     
     extends_str = f" extends {pojo_clase}" if pojo_clase else ""
     
     dto_code = f"""package {paquete_dto};
 
-{chr(10).join(importaciones)}
+{chr(10).join(sorted(importaciones))}
 
 @EqualsAndHashCode(callSuper = true)
 @SuperBuilder
@@ -97,18 +94,21 @@ public class {nombre_dto}{extends_str} {{
 """
     return dto_code
 
-def generar_dto_archivo(entidad_file, dtos_path, src_path, pojos_path):
+def generar_dto_archivo(entidad_file, dtos_path, entidades_path, pojos_path):
     """
     Genera el DTO en base a una entidad Java.
+    Se extraen todos los atributos y se combinan en un solo prompt:
+      - Los atributos que estén anotados con @Embedded se indican con la etiqueta "(embedded)".
+      - La selección se procesa para separar atributos normales y embebidos.
     """
     with open(entidad_file, "r", encoding="utf-8") as f:
         codigo_java = f.read()
     
-    nombre_entidad = re.search(r'public\s+class\s+(\w+)', codigo_java)
-    nombre_entidad = nombre_entidad.group(1) if nombre_entidad else None
+    nombre_entidad_match = re.search(r'public\s+class\s+(\w+)', codigo_java)
+    nombre_entidad = nombre_entidad_match.group(1) if nombre_entidad_match else None
     
-    paquete = re.search(r'package\s+([\w\.]+);', codigo_java)
-    paquete = paquete.group(1) if paquete else "com.example.models.entities"
+    paquete_match = re.search(r'package\s+([\w\.]+);', codigo_java)
+    paquete = paquete_match.group(1) if paquete_match else "com.example.models.entities"
     
     atributos = extraer_atributos(codigo_java)
     if not nombre_entidad or not atributos:
@@ -118,39 +118,44 @@ def generar_dto_archivo(entidad_file, dtos_path, src_path, pojos_path):
     nombre_pojo = nombre_entidad.replace("Entity", "")
     pojo_clase = buscar_pojo(pojos_path, nombre_pojo)
     
-    # Buscar clases embebidas en DTOs existentes
-    embedded_clases_dtos = buscar_embedded_en_dtos(dtos_path)
-    embeddable_clases = buscar_embeddable_classes(src_path)
+    # Extraer los atributos embebidos (los que tienen @Embedded)
+    embedded_atributos = extraer_embedded_atributos(codigo_java)
+    # Convertir a un set de nombres para marcar las opciones
+    embedded_nombres = {nombre for _, nombre in embedded_atributos}
     
-    # Preguntar al usuario qué atributos incluir
+    # Construir una única lista de opciones para seleccionar
+    choices = []
+    for tipo, nombre in atributos:
+        if nombre in embedded_nombres:
+            choices.append(f"{tipo} {nombre} (embedded)")
+        else:
+            choices.append(f"{tipo} {nombre}")
+    
     preguntas = [
         inquirer.Checkbox(
             "atributos",
             message="Seleccione los atributos a incluir en el DTO:",
-            choices=[f"{tipo} {nombre}" for tipo, nombre in atributos],
+            choices=choices,
         )
     ]
     respuestas = inquirer.prompt(preguntas)
-    atributos_seleccionados = [tuple(attr.split(" ")) for attr in respuestas["atributos"]] if respuestas else []
     
-    # Preguntar si se quieren incluir clases embebidas
-    if embedded_clases_dtos or embeddable_clases:
-        preguntas_embedded = [
-            inquirer.Checkbox(
-                "embedded",
-                message="Seleccione clases embebidas a incluir:",
-                choices=list(embedded_clases_dtos | embeddable_clases),
-            )
-        ]
-        respuestas_embedded = inquirer.prompt(preguntas_embedded)
-        embedded_clases = respuestas_embedded["embedded"] if respuestas_embedded else []
-    else:
-        embedded_clases = []
+    # Separar la selección en atributos normales y embebidos
+    atributos_seleccionados = []
+    embedded_seleccionados = []
+    if respuestas and "atributos" in respuestas:
+        for attr in respuestas["atributos"]:
+            if attr.endswith(" (embedded)"):
+                attr_clean = attr.replace(" (embedded)", "")
+                tipo, nombre = attr_clean.split(" ")
+                embedded_seleccionados.append((tipo, nombre))
+            else:
+                tipo, nombre = attr.split(" ")
+                atributos_seleccionados.append((tipo, nombre))
     
-    # Generar código DTO
-    dto_code = generar_dto(nombre_entidad, paquete, atributos_seleccionados, embedded_clases, pojo_clase)
+    # Generar el código DTO
+    dto_code = generar_dto(nombre_entidad, paquete, atributos_seleccionados, embedded_seleccionados, pojo_clase)
     
-    # Guardar archivo
     os.makedirs(dtos_path, exist_ok=True)
     dto_file = os.path.join(dtos_path, f"{nombre_entidad.replace('Entity', '')}Dto.java")
     with open(dto_file, "w", encoding="utf-8") as f:

@@ -130,8 +130,8 @@ def generar_archivos_factories(entidad_file, atributos_seleccionados):
     nombre_entidad = os.path.basename(entidad_file).replace(".java", "")
     nombre_simple = nombre_entidad.replace("Entity", "")
 
-    # Definir el archivo SearchModel generado previamente
-    search_file = os.path.join("search", f"{nombre_simple}SearchModel.java")
+    # Definir el archivo SearchModel generado previamente (ahora dentro de output/search)
+    search_file = os.path.join("output", "search", f"{nombre_simple}SearchModel.java")
     if not os.path.exists(search_file):
         print(f"❌ No se encontró el archivo SearchModel: {search_file}")
         return ""
@@ -152,17 +152,17 @@ def generar_archivos_factories(entidad_file, atributos_seleccionados):
         print("⚠ No se seleccionaron atributos. No se generarán las Specifications ni la Specification Factory.")
         return ""
 
-    # Generar Specifications (para la fábrica) y Specification Factory usando los mismos atributos
+    # Generar Specifications y Specification Factory usando los mismos atributos
     nombre_spec, spec_code = generar_factories_specifications(nombre_entidad, None, atributos_seleccionados)
     nombre_factory, factory_code = generar_factories_factory(nombre_entidad, None, atributos_seleccionados)
 
-    # Crear carpetas si no existen
-    os.makedirs("specifications", exist_ok=True)
-    os.makedirs("factories", exist_ok=True)
+    # Crear carpetas dentro de output si no existen
+    os.makedirs(os.path.join("output", "specifications"), exist_ok=True)
+    os.makedirs(os.path.join("output", "factories"), exist_ok=True)
 
-    # Guardar archivos
-    spec_file = os.path.join("specifications", f"{nombre_spec}.java")
-    factory_file = os.path.join("factories", f"{nombre_factory}.java")
+    # Guardar archivos dentro de output
+    spec_file = os.path.join("output", "specifications", f"{nombre_spec}.java")
+    factory_file = os.path.join("output", "factories", f"{nombre_factory}.java")
     with open(spec_file, "w", encoding="utf-8") as f:
         f.write(spec_code)
     with open(factory_file, "w", encoding="utf-8") as f:

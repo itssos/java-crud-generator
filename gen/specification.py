@@ -102,9 +102,11 @@ def generar_specifications_archivo(entidad_file, atributos_seleccionados=None):
 
     nombre_spec, spec_code = generar_specifications(nombre_entidad, paquete, atributos_seleccionados)
 
-    os.makedirs("specifications", exist_ok=True)
+    # Crear carpeta "output/specifications" si no existe
+    spec_dir = os.path.join("output", "specifications")
+    os.makedirs(spec_dir, exist_ok=True)
 
-    spec_file = os.path.join("specifications", f"{nombre_spec}.java")
+    spec_file = os.path.join(spec_dir, f"{nombre_spec}.java")
     with open(spec_file, "w", encoding="utf-8") as f:
         f.write(spec_code)
 

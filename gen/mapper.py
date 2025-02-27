@@ -55,7 +55,8 @@ public class {nombre_mapper} {{
 
 def generar_mapper_archivo(entidad_file):
     """
-    Lee el archivo de la entidad y genera el Mapper correspondiente.
+    Lee el archivo de la entidad y genera el Mapper correspondiente, 
+    guardándolo en output/mappers.
     """
     with open(entidad_file, "r", encoding="utf-8") as f:
         codigo_java = f.read()
@@ -69,8 +70,10 @@ def generar_mapper_archivo(entidad_file):
 
     mapper_code = generar_mapper(nombre_entidad, paquete)
 
-    os.makedirs("mappers", exist_ok=True)
-    mapper_file = os.path.join("mappers", f"{nombre_entidad.replace('Entity', '')}Mapper.java")
+    # Crear carpeta "output/mappers" si no existe
+    mapper_dir = os.path.join("output", "mappers")
+    os.makedirs(mapper_dir, exist_ok=True)
+    mapper_file = os.path.join(mapper_dir, f"{nombre_entidad.replace('Entity', '')}Mapper.java")
     with open(mapper_file, "w", encoding="utf-8") as f:
         f.write(mapper_code)
 

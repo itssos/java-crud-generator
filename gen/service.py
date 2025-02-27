@@ -1,12 +1,24 @@
+def extraer_base_paquete(paquete):
+    """
+    Extrae la base del package, por ejemplo:
+    de "com.inycom.cws.models.entities" retorna "com.inycom.cws"
+    """
+    parts = paquete.split('.')
+    if len(parts) >= 3:
+        return '.'.join(parts[:3])
+    return paquete
+
+
 def generar_create_service(nombre_entidad, paquete, id_tipo="Long"):
+    base = extraer_base_paquete(paquete)
     nombre_simple = nombre_entidad.replace("Entity", "")
     var_name = nombre_simple[0].lower() + nombre_simple[1:]
-    return f"""package {paquete}.services;
+    return f"""package {base}.services;
 
-import {paquete}.mappers.{nombre_simple}Mapper;
-import {paquete}.models.dtos.{nombre_simple}Dto;
-import {paquete}.models.pojos.{nombre_simple};
-import {paquete}.repositories.{nombre_simple}Repository;
+import {base}.mappers.{nombre_simple}Mapper;
+import {base}.models.dtos.{nombre_simple}Dto;
+import {base}.models.pojos.{nombre_simple};
+import {base}.repositories.{nombre_simple}Repository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -22,14 +34,16 @@ public class Create{nombre_simple}Service {{
 }}
 """
 
+
 def generar_find_service(nombre_entidad, paquete, id_tipo="Long"):
+    base = extraer_base_paquete(paquete)
     nombre_simple = nombre_entidad.replace("Entity", "")
     nombre_var = nombre_simple[0].lower() + nombre_simple[1:]
-    return f"""package {paquete}.services;
+    return f"""package {base}.services;
 
-import {paquete}.exceptions.CwsException;
-import {paquete}.models.entities.{nombre_entidad};
-import {paquete}.repositories.{nombre_simple}Repository;
+import {base}.exceptions.CwsException;
+import {base}.models.entities.{nombre_entidad};
+import {base}.repositories.{nombre_simple}Repository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -45,21 +59,19 @@ public class Find{nombre_simple}Service {{
 }}
 """
 
+
 def generar_patch_service(nombre_entidad, paquete, id_tipo="Long"):
-    """
-    Genera el servicio de PATCH que utiliza el FindService para obtener la entidad existente,
-    el Mapper para transformar el POJO en entidad, y PatchUtils para mezclar ambos.
-    """
+    base = extraer_base_paquete(paquete)
     nombre_simple = nombre_entidad.replace("Entity", "")
     nombre_var = nombre_simple[0].lower() + nombre_simple[1:]
-    return f"""package {paquete}.services;
+    return f"""package {base}.services;
 
-import {paquete}.mappers.{nombre_simple}Mapper;
-import {paquete}.models.entities.{nombre_entidad};
-import {paquete}.models.pojos.{nombre_simple};
-import {paquete}.repositories.{nombre_simple}Repository;
-import {paquete}.services.Find{nombre_simple}Service;
-import {paquete}.utils.PatchUtils;
+import {base}.mappers.{nombre_simple}Mapper;
+import {base}.models.entities.{nombre_entidad};
+import {base}.models.pojos.{nombre_simple};
+import {base}.repositories.{nombre_simple}Repository;
+import {base}.services.Find{nombre_simple}Service;
+import {base}.utils.PatchUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -77,13 +89,15 @@ public class Patch{nombre_simple}Service {{
 }}
 """
 
+
 def generar_delete_service(nombre_entidad, paquete, id_tipo="Long"):
+    base = extraer_base_paquete(paquete)
     nombre_simple = nombre_entidad.replace("Entity", "")
-    return f"""package {paquete}.services;
+    return f"""package {base}.services;
 
 import org.springframework.stereotype.Service;
-import {paquete}.models.entities.{nombre_entidad};
-import {paquete}.repositories.{nombre_simple}Repository;
+import {base}.models.entities.{nombre_entidad};
+import {base}.repositories.{nombre_simple}Repository;
 
 @Service
 public class Delete{nombre_simple}Service {{
@@ -100,16 +114,15 @@ public class Delete{nombre_simple}Service {{
 }}
 """
 
+
 def generar_search_service(nombre_entidad, paquete):
-    """
-    Servicio para búsqueda/listado (GET /patients).
-    """
+    base = extraer_base_paquete(paquete)
     nombre_simple = nombre_entidad.replace("Entity", "")
-    return f"""package {paquete}.services;
+    return f"""package {base}.services;
 
 import org.springframework.stereotype.Service;
-import {paquete}.models.entities.{nombre_entidad};
-import {paquete}.repositories.{nombre_simple}Repository;
+import {base}.models.entities.{nombre_entidad};
+import {base}.repositories.{nombre_simple}Repository;
 import java.util.List;
 
 @Service
