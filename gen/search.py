@@ -17,7 +17,7 @@ def seleccionar_atributos(atributos):
     preguntas = [
         inquirer.Checkbox(
             "atributos",
-            message="Seleccione los atributos que desea incluir en el SearchModel (Presione ESPACIO para seleccionar y ENTER para confirmar):",
+            message="Seleccione los atributos que desea incluir en el SearchModel, Specification y Factories:",
             choices=[f"{tipo} {nombre}" for tipo, nombre in atributos],
         )
     ]
@@ -39,11 +39,14 @@ def generar_search_model(nombre_entidad, paquete, atributos_seleccionados):
     importaciones = """import lombok.Data;
 """
 
+    # Fijamos el package de forma fija (igual que en Specifications)
+    paquete_search = "com.inycom.cws.search"
+
     # Definir los atributos del SearchModel
     atributos_str = "\n    ".join([f"private {tipo} {nombre};" for tipo, nombre in atributos_seleccionados])
 
     # Generar código del SearchModel
-    search_code = f"""package {paquete}.search;
+    search_code = f"""package {paquete_search};
 
 {importaciones}
 
@@ -55,9 +58,10 @@ public class {nombre_search} {{
 """
     return search_code
 
-def generar_search_model_archivo(entidad_file):
+def generar_search_model_archivo(entidad_file, atributos_seleccionados=None):
     """
-    Lee el archivo de la entidad y genera el SearchModel correspondiente.
+    Genera el SearchModel correspondiente a partir del archivo de la entidad.
+    Si se pasa una lista de atributos ya seleccionados, se usa esa; de lo contrario, se extrae y solicita.
     """
     # Leer código Java
     with open(entidad_file, "r", encoding="utf-8") as f:
@@ -72,8 +76,9 @@ def generar_search_model_archivo(entidad_file):
         print("❌ Error: No se pudo extraer el nombre de la entidad o los atributos.")
         return
 
-    # Permitir selección de atributos con menú interactivo
-    atributos_seleccionados = seleccionar_atributos(atributos)
+    # Si no se han pasado atributos seleccionados, se solicita por consola
+    if atributos_seleccionados is None:
+        atributos_seleccionados = seleccionar_atributos(atributos)
 
     if not atributos_seleccionados:
         print("⚠ No se seleccionaron atributos. No se generará el SearchModel.")
@@ -82,10 +87,10 @@ def generar_search_model_archivo(entidad_file):
     # Generar SearchModel
     search_code = generar_search_model(nombre_entidad, paquete, atributos_seleccionados)
 
-    # ✅ Crear carpeta `search/` en la raíz si no existe
+    # Crear carpeta 'search' en la raíz si no existe
     os.makedirs("search", exist_ok=True)
 
-    # ✅ Guardar archivo en `search/` en la raíz
+    # Guardar archivo en 'search' con el nombre adecuado
     search_file = os.path.join("search", f"{nombre_entidad.replace('Entity', '')}SearchModel.java")
     with open(search_file, "w", encoding="utf-8") as f:
         f.write(search_code)

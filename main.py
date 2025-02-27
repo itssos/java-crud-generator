@@ -17,10 +17,9 @@ from gen.service import (
 from gen.repository import generar_repository
 from extract_data import extraer_nombre_entidad, extraer_paquete
 from gen.dto import generar_dto_archivo
-from gen.pojo import generar_pojo_archivo  # 🔹 Importamos el generador de POJOs
-from gen.search import generar_search_model_archivo
+from gen.pojo import generar_pojo_archivo  # 🔹 Generador de POJOs
+from gen.search import generar_search_model_archivo, extraer_atributos, seleccionar_atributos
 from gen.specification import generar_specifications_archivo
-from gen.factories import generar_archivos_specifications_y_factory as generar_specification_factory_archivo
 from gen.mapper import generar_mapper_archivo
 
 def main():
@@ -50,26 +49,29 @@ def main():
     os.makedirs("services", exist_ok=True)
     os.makedirs("controllers", exist_ok=True)
     os.makedirs("models/dtos", exist_ok=True)
-    os.makedirs("models/pojos", exist_ok=True)  # 🔹 Crear carpeta para POJOs
+    os.makedirs("models/pojos", exist_ok=True)  # Crear carpeta para POJOs
     os.makedirs("search", exist_ok=True)
-    os.makedirs("factories", exist_ok=True)
     os.makedirs("mappers", exist_ok=True)
 
-    # Generar archivos necesarios
+    # Generar archivos DTO y POJO
     generar_dto_archivo(entidad_file, "models/dtos", "models/dtos", "models/pojos")
-
-    # 🔹 Generar el POJO
     generar_pojo_archivo(entidad_file, "models/pojos")
 
-    generar_search_model_archivo(entidad_file)
+    # Extraer atributos y solicitar selección (se hace una sola vez)
+    atributos = extraer_atributos(codigo_java)
+    if not atributos:
+        print("❌ No se pudieron extraer los atributos de la entidad.")
+        return
+    atributos_seleccionados = seleccionar_atributos(atributos)
+    if not atributos_seleccionados:
+        print("⚠ No se seleccionaron atributos. Abortando generación de SearchModel y Specifications.")
+        return
 
-    # ✅ Se genera Specification con el formato correcto
-    specification_filename = f"{nombre_simple}Specification.java"
-    specification_path = os.path.join("search", specification_filename)
-    with open(specification_path, "w", encoding="utf-8") as f:
-        f.write(generar_specifications_archivo(entidad_file))
+    # Generar SearchModel y Specifications utilizando los mismos atributos seleccionados
+    generar_search_model_archivo(entidad_file, atributos_seleccionados)
+    generar_specifications_archivo(entidad_file, atributos_seleccionados)
 
-    generar_specification_factory_archivo(entidad_file)  # ✅ Se genera Factory
+    # Generar Mapper
     generar_mapper_archivo(entidad_file)
 
     # Generar Repository
@@ -86,7 +88,6 @@ def main():
         f"Delete{nombre_simple}Service.java": generar_delete_service(nombre_entidad, paquete),
         f"Search{nombre_simple}Service.java": generar_search_service(nombre_entidad, paquete),
     }
-
     for filename, code in services_map.items():
         with open(os.path.join("services", filename), "w", encoding="utf-8") as f:
             f.write(code)
@@ -99,14 +100,13 @@ def main():
         f"Delete{nombre_simple}Controller.java": generar_delete_controller(nombre_entidad, paquete),
         f"Search{nombre_simple}Controller.java": generar_search_controller(nombre_entidad, paquete),
     }
-
     for filename, code in controllers_map.items():
         with open(os.path.join("controllers", filename), "w", encoding="utf-8") as f:
             f.write(code)
 
     # Mensaje final de confirmación
     print("✅ Generación de código completada.")
-    print(f"📁 Revisa las carpetas 'repositories', 'services', 'controllers', 'models/dtos', 'models/pojos', 'search' y 'factories/{nombre_simple}/'.")
+    print(f"📁 Revisa las carpetas 'repositories', 'services', 'controllers', 'models/dtos', 'models/pojos', 'search' y 'mappers'.")
 
 if __name__ == "__main__":
     main()

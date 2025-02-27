@@ -14,15 +14,23 @@ def extraer_constantes_estaticas(codigo_java):
 
 def extraer_atributos_para_pojo(codigo_java, constantes):
     """
-    Extrae los atributos de la clase Java, junto con la validación de longitud si corresponde.
+    Extrae todos los atributos de la clase Java, incluyendo los que tienen validación de longitud.
     """
     atributos = []
+
+    # Extraer atributos con @Column(length = ...)
     matches = re.findall(r'@Column\(.*?length\s*=\s*(\w+)\)\s*private\s+([\w<>]+)\s+(\w+);', codigo_java)
-    
     for constante, tipo, nombre in matches:
-        if constante in constantes:  # Solo usar constantes definidas
+        if constante in constantes:  
             atributos.append((tipo, nombre, constante))
-    
+
+    # Extraer atributos sin @Column
+    matches_sin_column = re.findall(r'private\s+([\w<>]+)\s+(\w+);', codigo_java)
+    for tipo, nombre in matches_sin_column:
+        # Evitar agregar atributos duplicados
+        if not any(attr[1] == nombre for attr in atributos):
+            atributos.append((tipo, nombre, None))  # None indica que no tiene longitud definida
+
     return atributos
 
 def generar_pojo(nombre_entidad, paquete, atributos_seleccionados, constantes_usadas):
@@ -39,13 +47,20 @@ def generar_pojo(nombre_entidad, paquete, atributos_seleccionados, constantes_us
         "import lombok.experimental.SuperBuilder;"
     }
 
+    # Verificar si hay atributos de tipo LocalDate para agregar la importación
+    if any(tipo == "LocalDate" for tipo, _, _ in atributos_seleccionados):
+        importaciones.add("import java.time.LocalDate;")
+
     # Generar solo las constantes utilizadas
     constantes_str = [f"    private static final int {nombre} = {valor};" for nombre, valor in constantes_usadas.items()]
 
     atributos_str = []
     for tipo, nombre, max_length in atributos_seleccionados:
-        atributos_str.append(f"    @Size(max = {max_length})\n    private {tipo} {nombre};")
-        importaciones.add("import jakarta.validation.constraints.Size;")
+        if max_length:  # Solo agregar @Size si tiene un max_length definido
+            atributos_str.append(f"    @Size(max = {max_length})\n    private {tipo} {nombre};")
+            importaciones.add("import jakarta.validation.constraints.Size;")
+        else:
+            atributos_str.append(f"    private {tipo} {nombre};")
 
     pojo_code = f"""package {paquete_pojo};
 
@@ -87,6 +102,11 @@ def generar_pojo_archivo(entidad_file, pojos_path):
         print("❌ Error: No se encontraron atributos en la entidad.")
         return
 
+    # Mostrar todos los atributos en la consola
+    print("\n🔹 Atributos detectados en la entidad:")
+    for tipo, nombre, max_length in atributos:
+        print(f"   - {tipo} {nombre} (max_length: {max_length if max_length else 'N/A'})")
+
     # Preguntar al usuario qué atributos incluir
     preguntas = [
         inquirer.Checkbox(
@@ -110,4 +130,4 @@ def generar_pojo_archivo(entidad_file, pojos_path):
     with open(pojo_file, "w", encoding="utf-8") as f:
         f.write(pojo_code)
 
-    print(f"✅ POJO generado: {pojo_file}")
+    print(f"\n✅ POJO generado: {pojo_file}")

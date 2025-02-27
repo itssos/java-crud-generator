@@ -2,12 +2,13 @@ import os
 import re
 import inquirer
 
-def extraer_atributos_search(codigo_java):
+def extraer_atributos_entidad(codigo_java):
     """
-    Extrae los atributos de la clase SearchModel Java.
+    Extrae los atributos de la clase Entity en Java.
     Busca variables privadas con su tipo de dato y nombre.
     """
-    return re.findall(r'private\s+([\w<>]+)\s+(\w+);', codigo_java)
+    patron = re.findall(r'private\s+([\w<>]+)\s+(\w+);', codigo_java)
+    return patron
 
 def seleccionar_atributos(atributos):
     """
@@ -30,22 +31,25 @@ def seleccionar_atributos(atributos):
     
     return []
 
-def generar_specifications(nombre_entidad, paquete, atributos_seleccionados):
+def generar_specifications(nombre_entidad, paquete_entidad, atributos_seleccionados):
     """
-    Genera el código Java para Specifications con los atributos seleccionados desde SearchModel.
+    Genera el código Java para Specifications con los atributos seleccionados.
     """
     nombre_simple = nombre_entidad.replace("Entity", "")
     nombre_spec = f"{nombre_simple}Specifications"
 
-    # Importaciones necesarias
-    importaciones = f"""package {paquete}.specifications;
+    # El package se fija siempre
+    paquete_specifications = "com.inycom.cws.specifications"
 
-import {paquete}.models.entities.{nombre_entidad};
+    # Importaciones (incluye el Entity original)
+    importaciones = f"""package {paquete_specifications};
+
+import {paquete_entidad}.{nombre_entidad};
 import lombok.experimental.UtilityClass;
 import org.springframework.data.jpa.domain.Specification;
 """
 
-    # Método vacío `empty()`
+    # Método empty()
     metodo_empty = f"""
 @UtilityClass
 public class {nombre_spec} {{
@@ -63,68 +67,50 @@ public class {nombre_spec} {{
         for tipo, attr in atributos_seleccionados
     ])
 
-    # Cerrar la clase
     cierre_clase = "}\n"
 
-    # Generar código completo
     specifications_code = f"""{importaciones}
 {metodo_empty}
 {especificaciones}
 {cierre_clase}
 """
-    return nombre_spec, specifications_code  # Devolver el nombre correcto y el código generado
+    return nombre_spec, specifications_code
 
-def generar_specifications_archivo(entidad_file):
+def generar_specifications_archivo(entidad_file, atributos_seleccionados=None):
     """
-    Lee el archivo de la entidad y genera Specifications en la carpeta 'specifications/'.
+    Genera Specifications a partir del archivo de la entidad.
+    Si se pasa una lista de atributos ya seleccionados, se usa esa; de lo contrario, se extrae y solicita.
     """
-    # Obtener el nombre de la entidad sin ".java"
     nombre_entidad = os.path.basename(entidad_file).replace(".java", "")
-    nombre_simple = nombre_entidad.replace("Entity", "")
 
-    # Definir el archivo SearchModel generado previamente
-    search_file = os.path.join("search", f"{nombre_simple}SearchModel.java")
-
-    if not os.path.exists(search_file):
-        print(f"❌ No se encontró el archivo SearchModel: {search_file}")
-        return ""
-
-    # Leer código Java del SearchModel
-    with open(search_file, "r", encoding="utf-8") as f:
+    with open(entidad_file, "r", encoding="utf-8") as f:
         codigo_java = f.read()
 
-    # Extraer metadatos
     paquete = extraer_paquete(codigo_java)
-    atributos = extraer_atributos_search(codigo_java)
+    atributos = extraer_atributos_entidad(codigo_java)
 
     if not nombre_entidad or not atributos:
-        print("❌ Error: No se pudo extraer el nombre de la entidad o los atributos del SearchModel.")
+        print("❌ Error: No se pudo extraer el nombre de la entidad o los atributos.")
         return ""
 
-    # ✅ Permitir selección de atributos por consola
-    atributos_seleccionados = seleccionar_atributos(atributos)
+    if atributos_seleccionados is None:
+        atributos_seleccionados = seleccionar_atributos(atributos)
 
     if not atributos_seleccionados:
         print("⚠ No se seleccionaron atributos. No se generará Specifications.")
         return ""
 
-    # Generar Specifications
     nombre_spec, spec_code = generar_specifications(nombre_entidad, paquete, atributos_seleccionados)
 
-    # ✅ Crear carpeta `specifications/` en la raíz si no existe
     os.makedirs("specifications", exist_ok=True)
 
-    # ✅ Guardar archivo en `specifications/`
     spec_file = os.path.join("specifications", f"{nombre_spec}.java")
     with open(spec_file, "w", encoding="utf-8") as f:
         f.write(spec_code)
 
     print(f"✅ Specifications generado en: {spec_file}")
+    return spec_code
 
-    return spec_code  # Retorna el código generado para evitar None
-
-# Función auxiliar para extraer el paquete
 def extraer_paquete(codigo_java):
     match = re.search(r'package\s+([\w\.]+);', codigo_java)
     return match.group(1) if match else "com.example"
-
