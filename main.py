@@ -17,14 +17,15 @@ from gen.service import (
 from gen.repository import generar_repository
 from extract_data import extraer_nombre_entidad, extraer_paquete
 from gen.dto import generar_dto_archivo
+from gen.pojo import generar_pojo_archivo  # 🔹 Importamos el generador de POJOs
 from gen.search import generar_search_model_archivo
-from gen.specification import generar_specifications_archivo  # ✅ Importamos el generador de Specification
+from gen.specification import generar_specifications_archivo
 from gen.factories import generar_archivos_specifications_y_factory as generar_specification_factory_archivo
-from gen.mapper import generar_mapper_archivo  # ✅ Importamos el generador de Mapper
+from gen.mapper import generar_mapper_archivo
 
 def main():
     # Ruta del archivo de la entidad Java
-    entidad_file = "C:\\Users\\diego\\OneDrive\\Documentos\\Github\\java-crud-generator\\PruebaEntity.java"
+    entidad_file = "C:\\Users\\diego\\OneDrive\\Documentos\\Github\\java-crud-generator\\PatientEntity.java"
 
     # Verificar si el archivo existe
     if not os.path.exists(entidad_file):
@@ -49,12 +50,17 @@ def main():
     os.makedirs("services", exist_ok=True)
     os.makedirs("controllers", exist_ok=True)
     os.makedirs("models/dtos", exist_ok=True)
+    os.makedirs("models/pojos", exist_ok=True)  # 🔹 Crear carpeta para POJOs
     os.makedirs("search", exist_ok=True)
     os.makedirs("factories", exist_ok=True)
     os.makedirs("mappers", exist_ok=True)
 
     # Generar archivos necesarios
-    generar_dto_archivo(entidad_file)
+    generar_dto_archivo(entidad_file, "models/dtos", "models/dtos", "models/pojos")
+
+    # 🔹 Generar el POJO
+    generar_pojo_archivo(entidad_file, "models/pojos")
+
     generar_search_model_archivo(entidad_file)
 
     # ✅ Se genera Specification con el formato correcto
@@ -100,7 +106,7 @@ def main():
 
     # Mensaje final de confirmación
     print("✅ Generación de código completada.")
-    print(f"📁 Revisa las carpetas 'repositories', 'services', 'controllers', 'models/dtos', 'search' y 'factories/{nombre_simple}/'.")
+    print(f"📁 Revisa las carpetas 'repositories', 'services', 'controllers', 'models/dtos', 'models/pojos', 'search' y 'factories/{nombre_simple}/'.")
 
 if __name__ == "__main__":
     main()
