@@ -102,11 +102,6 @@ def generar_pojo_archivo(entidad_file, pojos_path):
         print("❌ Error: No se encontraron atributos en la entidad.")
         return
 
-    # Mostrar todos los atributos en la consola
-    print("\n🔹 Atributos detectados en la entidad:")
-    for tipo, nombre, max_length in atributos:
-        print(f"   - {tipo} {nombre} (max_length: {max_length if max_length else 'N/A'})")
-
     # Preguntar al usuario qué atributos incluir
     preguntas = [
         inquirer.Checkbox(

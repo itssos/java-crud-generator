@@ -130,8 +130,8 @@ def main():
         f.write(repo_code)
 
     # 4. Generar archivos DTO y POJO
-    generar_dto_archivo(entidad_file, output_dirs["models_dtos"], output_dirs["models_dtos"], output_dirs["models_pojos"])
     generar_pojo_archivo(entidad_file, output_dirs["models_pojos"])
+    generar_dto_archivo(entidad_file, output_dirs["models_dtos"], output_dirs["models_dtos"], output_dirs["models_pojos"])
 
     # 5. Generar Mapper
     generar_mapper_archivo(entidad_file)
