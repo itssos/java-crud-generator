@@ -59,10 +59,11 @@ def generar_dto(nombre_entidad, paquete, atributos_seleccionados, embedded_selec
       - Los atributos embebidos (con @Embedded) seleccionados.
       - Extiende del POJO, importándolo desde el package derivado de la entidad.
     Solo se añade @NotNull al atributo que corresponde al id (según la anotación @Id en la entidad).
+    Cada línea (anotación y atributo) se indenta con un tabulador.
     """
     nombre_simple = nombre_entidad.replace("Entity", "")
     nombre_dto = f"{nombre_simple}Dto"
-    # El package del DTO se deriva del package de la entidad, cambiando "models.entities" por "models.dtos"
+    # Derivar package del DTO cambiando "models.entities" por "models.dtos"
     paquete_dto = paquete.replace("models.entities", "models.dtos")
     
     importaciones = set([
@@ -73,24 +74,23 @@ def generar_dto(nombre_entidad, paquete, atributos_seleccionados, embedded_selec
         "import lombok.experimental.SuperBuilder;"
     ])
     
-    # Si se encontró un POJO, se importa desde el package de POJOs derivado de la entidad
     if pojo_clase:
         importaciones.add(f"import {paquete.replace('models.entities', 'models.pojos')}.{pojo_clase};")
     
     atributos_str = []
     for tipo, nombre in atributos_seleccionados:
         if id_atributo and nombre == id_atributo[1]:
-            atributos_str.append(f"@NotNull\n    private {tipo} {nombre};")
+            # Se añade @NotNull con tabulador antes
+            atributos_str.append(f"\t@NotNull\n\tprivate {tipo} {nombre};")
             importaciones.add("import jakarta.validation.constraints.NotNull;")
         else:
-            atributos_str.append(f"private {tipo} {nombre};")
+            atributos_str.append(f"\tprivate {tipo} {nombre};")
     
     embedded_str = []
     for tipo, nombre in embedded_seleccionados:
-        embedded_str.append(f"@Embedded\n    private {tipo} {nombre};")
+        embedded_str.append(f"\t@Embedded\n\tprivate {tipo} {nombre};")
         importaciones.add("import jakarta.persistence.Embedded;")
     
-    # El DTO extiende del POJO (si se encontró)
     extends_str = f" extends {pojo_clase}" if pojo_clase else ""
     
     dto_code = f"""package {paquete_dto};
@@ -104,8 +104,8 @@ def generar_dto(nombre_entidad, paquete, atributos_seleccionados, embedded_selec
 @Data
 public class {nombre_dto}{extends_str} {{
 
-    {chr(10).join(atributos_str)}
-    {chr(10).join(embedded_str)}
+{chr(10).join(atributos_str)}
+{chr(10).join(embedded_str)}
 }}
 """
     return dto_code
@@ -133,18 +133,14 @@ def generar_dto_archivo(entidad_file, dtos_path, entidades_path, pojos_path):
         print("❌ Error: No se pudo extraer el nombre de la entidad o los atributos.")
         return
     
-    # Extraer el atributo id (anotado con @Id)
     id_atributo = extraer_id_atributo(codigo_java)
     
     nombre_pojo = nombre_entidad.replace("Entity", "")
     pojo_clase = buscar_pojo(pojos_path, nombre_pojo)
     
-    # Extraer los atributos embebidos (aquellos con @Embedded)
     embedded_atributos = extraer_embedded_atributos(codigo_java)
-    # Convertir a un set de nombres para marcarlos en la lista de opciones
     embedded_nombres = {nombre for _, nombre in embedded_atributos}
     
-    # Construir una única lista de opciones para seleccionar
     choices = []
     for tipo, nombre in atributos:
         if nombre in embedded_nombres:
@@ -161,7 +157,6 @@ def generar_dto_archivo(entidad_file, dtos_path, entidades_path, pojos_path):
     ]
     respuestas = inquirer.prompt(preguntas)
     
-    # Separar la selección en atributos normales y embebidos
     atributos_seleccionados = []
     embedded_seleccionados = []
     if respuestas and "atributos" in respuestas:
@@ -174,7 +169,6 @@ def generar_dto_archivo(entidad_file, dtos_path, entidades_path, pojos_path):
                 tipo, nombre = attr.split(" ")
                 atributos_seleccionados.append((tipo, nombre))
     
-    # Generar el código DTO, que extiende del POJO (si se encontró)
     dto_code = generar_dto(nombre_entidad, paquete, atributos_seleccionados, embedded_seleccionados, pojo_clase, id_atributo)
     
     os.makedirs(dtos_path, exist_ok=True)
