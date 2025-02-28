@@ -114,28 +114,35 @@ public class Delete{nombre_simple}Service {{
 """
 
 
-
 def generar_search_service(nombre_entidad, paquete):
     base = extraer_base_paquete(paquete)
     nombre_simple = nombre_entidad.replace("Entity", "")
     return f"""package {base}.services;
 
-import org.springframework.stereotype.Service;
+import {base}.factories.{nombre_simple}SpecificationFactory;
+import {base}.mappers.{nombre_simple}Mapper;
+import {base}.models.dtos.{nombre_simple}Dto;
 import {base}.models.entities.{nombre_entidad};
 import {base}.repositories.{nombre_simple}Repository;
-import java.util.List;
+import {base}.search.{nombre_simple}SearchModel;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
 
+import java.util.Collection;
+
+@RequiredArgsConstructor
 @Service
 public class Search{nombre_simple}Service {{
-
     private final {nombre_simple}Repository repository;
 
-    public Search{nombre_simple}Service({nombre_simple}Repository repository) {{
-        this.repository = repository;
-    }}
+    public Collection<{nombre_simple}Dto> search(final {nombre_simple}SearchModel searchModel, final Pageable pageable) {{
+        final Specification<{nombre_entidad}> specification =
+                {nombre_simple}SpecificationFactory.mapToSpecification(searchModel);
 
-    public List<{nombre_entidad}> searchAll() {{
-        return repository.findAll();
+        return repository.findAll(specification, pageable).map({nombre_simple}Mapper::toDto).getContent();
     }}
 }}
 """
+

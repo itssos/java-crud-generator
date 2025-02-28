@@ -11,7 +11,8 @@ from gen.service import (
     generar_create_service,
     generar_delete_service,
     generar_find_service,
-    generar_patch_service
+    generar_patch_service,
+    generar_search_service
 )
 from gen.repository import generar_repository
 from extract_data import extraer_nombre_entidad, extraer_paquete
@@ -117,6 +118,7 @@ def main():
         f"Find{nombre_simple}Service.java": generar_find_service(nombre_entidad, paquete),
         f"Patch{nombre_simple}Service.java": generar_patch_service(nombre_entidad, paquete),
         f"Delete{nombre_simple}Service.java": generar_delete_service(nombre_entidad, paquete),
+        f"Search{nombre_simple}Service.java": generar_search_service(nombre_entidad, paquete),
     }
     for filename, code in services_map.items():
         filepath = os.path.join(output_dirs["services"], filename)
