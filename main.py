@@ -1,4 +1,5 @@
 import os
+import shutil
 
 from gen.controller import (
     generar_get_controller,
@@ -77,6 +78,18 @@ def main():
         print("❌ No se pudo extraer el nombre de la entidad o el paquete.")
         return
 
+    # Mover la entidad seleccionada a output/models/entities/ si no está ya allí
+    entities_out_dir = os.path.join("output", "models", "entities")
+    os.makedirs(entities_out_dir, exist_ok=True)
+    destino = os.path.join(entities_out_dir, os.path.basename(entidad_file))
+
+    if os.path.abspath(entidad_file) == os.path.abspath(destino):
+        print("ℹ️ La entidad ya se encuentra en 'output/models/entities/'.")
+    else:
+        shutil.move(entidad_file, destino)
+        print(f"✅ Entidad movida a: {destino}")
+
+
     # Solicitar el valor para la constante compartida (para POST, PATCH y DELETE)
     con_value_input = input("Ingrese el valor para la constante compartida para el controlador (por ejemplo, 40): ").strip()
     if not con_value_input.isdigit():
@@ -132,11 +145,11 @@ def main():
         f.write(repo_code)
 
     # 4. Generar archivos DTO y POJO
-    generar_pojo_archivo(entidad_file, output_dirs["models_pojos"])
-    generar_dto_archivo(entidad_file, output_dirs["models_dtos"], output_dirs["models_dtos"], output_dirs["models_pojos"])
+    generar_pojo_archivo(destino, output_dirs["models_pojos"])
+    generar_dto_archivo(destino, output_dirs["models_dtos"], output_dirs["models_dtos"], output_dirs["models_pojos"])
 
     # 5. Generar Mapper
-    generar_mapper_archivo(entidad_file)
+    generar_mapper_archivo(destino)
 
     # 6. Extraer atributos y solicitar selección (se hace una sola vez)
     atributos = extraer_atributos(codigo_java)
@@ -149,12 +162,12 @@ def main():
         return
 
     # 7. Generar SearchModel, Specifications y Factories utilizando los mismos atributos seleccionados
-    generar_search_model_archivo(entidad_file, atributos_seleccionados)
-    generar_specifications_archivo(entidad_file, atributos_seleccionados)
-    generar_archivos_factories(entidad_file, atributos_seleccionados)
+    generar_search_model_archivo(destino, atributos_seleccionados)
+    generar_specifications_archivo(destino, atributos_seleccionados)
+    generar_archivos_factories(destino, atributos_seleccionados)
 
     print("✅ Generación de código completada.")
-    print("📁 Revisa la carpeta 'output' y sus subcarpetas: controllers, services, repositories, models/dtos, models/pojos, mappers, search, specifications y factories.")
+    print("📁 Revisa la carpeta 'output' y sus subcarpetas: controllers, services, repositories, models/dtos, models/entities, models/pojos, mappers, search, specifications y factories.")
 
 
 if __name__ == "__main__":

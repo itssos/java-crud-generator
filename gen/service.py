@@ -28,7 +28,6 @@ public class Create{nombre_simple}Service {{
     private final {nombre_simple}Repository repository;
 
     public {nombre_simple}Dto create(final {nombre_simple} {var_name}) {{
-        {var_name}.setHighQuality(Boolean.FALSE);
         return {nombre_simple}Mapper.toDto(repository.save({nombre_simple}Mapper.toEntity({var_name})));
     }}
 }}

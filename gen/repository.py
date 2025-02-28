@@ -1,12 +1,19 @@
-def generar_repository(nombre_entidad, paquete, id_tipo="Long"):
+def extraer_base_paquete(paquete):
     """
-    Genera el código de la interfaz Repository, p. ej. PatientRepository,
-    extendiendo CrudRepository y JpaSpecificationExecutor, e incluyendo la anotación @Repository.
+    Extrae la base del package, por ejemplo:
+    de "com.inycom.cws.models.entities" retorna "com.inycom.cws"
     """
-    nombre_simple = nombre_entidad.replace("Entity", "")
-    return f"""package {paquete}.repositories;
+    parts = paquete.split('.')
+    if len(parts) >= 3:
+        return '.'.join(parts[:3])
+    return paquete
 
-import {paquete}.models.entities.{nombre_entidad};
+def generar_repository(nombre_entidad, paquete, id_tipo="Long"):
+    base = extraer_base_paquete(paquete)
+    nombre_simple = nombre_entidad.replace("Entity", "")
+    return f"""package {base}.repositories;
+
+import {base}.models.entities.{nombre_entidad};
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.stereotype.Repository;
